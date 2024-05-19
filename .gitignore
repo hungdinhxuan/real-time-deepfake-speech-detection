@@ -1,0 +1,11 @@
+__pycache__**
+check.py
+run/launch.sh
+wandb
+runs
+*.pt
+datasets/
+pretrained
+bests/
+runs/*
+results/

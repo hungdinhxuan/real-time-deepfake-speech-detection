@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "towards-real-time-deepfake-speech-detection-in-resource-limited-scenarios"
+version = "0.1.0"
+description = ""
+authors = ["Hung Dinh Xuan <hungdinhxdev@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.8.18"
+torch = "^2.3.0"
+torchaudio = "^2.3.0"
+librosa = "^0.10.2.post1"
+torchinfo = "^1.8.0"
+wandb = "^0.17.0"
+conformer = "^0.3.2"
+torch-audiomentations = "^0.11.1"
+audiomentations = "^0.35.0"
+tensorboardx = "^2.6.2.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
