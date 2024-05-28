@@ -47,12 +47,13 @@ class SysConfig:
             'la21_score_save_path', './runs')
         self.la19_score_save_path = config.get(
             'la19_score_save_path', './runs')
-        
+
         self.path_itw_eval = config.get('path_itw_eval', '')
         self.path_label_itw_eval = config.get(
             'path_label_itw_eval', '')
-        
-        self.model = config.get('model', 'W2V2_COAASIST')
+
+        self.model = config.get('model', 'XLSR_AASIST')
+        self.student_model = config.get('student_model', 'XLSR_AASIST')
 
     def __str__(self):
         return f"SysConfig: {self.__dict__}"
@@ -76,15 +77,15 @@ class ExpConfig:
         self.test_duration_sec = config.get('test_duration_sec', 4)
         self.batch_size_train = config.get('batch_size_train', 32)
         self.batch_size_test = config.get('batch_size_test', 40)
-        
+        self.lr = config.get('lr', 0.000001)
         self.weight_decay = config.get('weight_decay', 0.0001)
-        
+        self.max_epoch = config.get('max_epoch', 100)
         self.allow_data_augmentation = config.get(
             'allow_data_augmentation', False)
         self.data_augmentation = config.get('data_augmentation', ['ACN'])
         self.restore_checkpoint = config.get('restore_checkpoint', None)
         self.kwargs = config.get('kwargs', {})
-        
+        self.kd_kwargs = config.get('kd_kwargs', {})
 
     def __str__(self):
         return f"ExpConfig: {self.__dict__}"

@@ -4,6 +4,7 @@ from conformer import ConformerBlock
 from torch.nn.modules.transformer import _get_clones
 from .fe import *
 
+
 class MyConformer(nn.Module):
     def __init__(self, emb_size=128, heads=4, ffmult=4, exp_fac=2, kernel_size=16, n_encoders=1):
         super(MyConformer, self).__init__()
@@ -32,7 +33,7 @@ class Model(nn.Module):
     def __init__(self, device, ssl_cpkt_path, **kwargs):
         super().__init__()
         self.device = device
-        ## 
+        ##
         # Default config from conformer
         ##
         emb_size = kwargs.get('emb_size', 144)
@@ -47,7 +48,7 @@ class Model(nn.Module):
         print('W2V + Conformer')
         self.first_bn = nn.BatchNorm2d(num_features=1)
         self.selu = nn.SELU(inplace=True)
-    
+
         self.conformer = MyConformer(emb_size=emb_size, n_encoders=n_encoders,
                                      heads=heads, kernel_size=kernel_size)
 

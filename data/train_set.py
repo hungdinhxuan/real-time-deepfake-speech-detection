@@ -28,7 +28,7 @@ def process_file(path_label, path_asv_spoof, exp_config):
         if label == 1:
             num_of_bonafide += 1
         else:
-            num_of_spoof += 1 
+            num_of_spoof += 1
         # This part is for my own experiment
         # Not include no_speech
         if 'no_speech' in file and not exp_config.include_non_speech:
@@ -56,6 +56,7 @@ class ASVspoof2019LA(data.Dataset):
         self.duration = int(
             exp_config.train_duration_sec * exp_config.sample_rate)
         self.is_train = is_train
+        self.is_random_start = exp_config.is_random_start
         path_label_train = sys_config.path_label_asv_spoof_2019_la_train
         path_label_dev = sys_config.path_label_asv_spoof_2019_la_dev
 
@@ -82,7 +83,7 @@ class ASVspoof2019LA(data.Dataset):
         }
         self.args = Args(args)
         self.data_augmentation_list = exp_config.data_augmentation
-        
+
         ## ===================================================Rawboost data augmentation ======================================================================#
 
         self.data_list = []
@@ -95,7 +96,7 @@ class ASVspoof2019LA(data.Dataset):
         else:
             self.data_list, num_of_spoof, num_of_bonafide = process_file(
                 path_label_dev, sys_config.path_asv_spoof_2019_la_dev, exp_config)
-        
+
         self.num_of_spoof = num_of_spoof
         self.num_of_bonafide = num_of_bonafide
 
@@ -123,22 +124,18 @@ class ASVspoof2019LA(data.Dataset):
                 utter = process_audiomentations(utter, self.sample_rate)
             # =============================== Data Augmentation =============================== #
 
-        utter = self.adjustDuration(utter)
+        utter = self.adjustDuration_random_start(
+            utter) if self.is_random_start else self.adjustDuration(utter)
         if not isinstance(utter, torch.Tensor):
             utter = torch.from_numpy(utter).float()
         return _, utter, label
 
-    def adjustDuration(self, x):
+    def adjustDuration_random_start(self, x):
         # x = x.squeeze() if len(x.shape) == 2 else x
         x_len = len(x)
 
         if x_len < self.duration:
-            if "randomly_mul_augment_padding" in self.data_augmentation_list and self.is_train:
-                # print("randomly_mul_augment_padding")
-                tmp = [process_audiomentations(
-                    x, self.sample_rate) for _ in range(self.duration // x_len)]
-            else:
-                tmp = [x] * (self.duration // x_len)
+            tmp = [x] * (self.duration // x_len)
 
             residue = self.duration % x_len
             if residue > 0:
@@ -151,3 +148,31 @@ class ASVspoof2019LA(data.Dataset):
         start_seg = random.randint(0, len(x) - self.duration)
 
         return x[start_seg: start_seg + self.duration]
+
+    def adjustDuration(self, x):
+        """_summary_
+        use test data with specific duration from start of the audio 
+        Args:
+            x (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
+
+        if len(x.shape) == 2:
+            x = x.squeeze()
+
+        x_len = len(x)
+        if x_len < self.duration:
+            # repeat x to fill the duration
+            tmp = [x for i in range(0, (self.duration // x_len))]
+
+            # add residue if any left to fill the duration
+            residue = self.duration % x_len
+            if residue > 0:
+                tmp.append(x[0:residue])
+
+            # concatenate all the repeated x
+            x = torch.cat(tmp, dim=0)
+
+        return x[0: self.duration]  # first duration seconds

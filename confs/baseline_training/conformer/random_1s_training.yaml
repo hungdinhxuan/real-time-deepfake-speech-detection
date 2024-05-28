@@ -1,0 +1,50 @@
+SysConfig:
+  wandb_disabled: False
+  wandb_project: 'ASV-Spoofing-AASIST-SSL-short'
+  wandb_name: 'ConformerModel, Rawboots DA 3 (random1s training)'
+  wandb_entity: 'hungdinhxdev'
+  wandb_key: 'd0284ef2414fcc6df741459db8ad48645db5e92c'
+  wandb_notes: 'Corrected CE weights'
+
+  path_label_asv_spoof_2019_la_train: '/datab/hungdx/KDW2V-AASISTL/protocols/ASVspoof_LA_cm_protocols/ASVspoof2019.LA.cm.train.trn.txt'
+  path_label_asv_spoof_2019_la_dev: '/datab/hungdx/KDW2V-AASISTL/protocols/ASVspoof_LA_cm_protocols/ASVspoof2019.LA.cm.dev.trl.txt'
+  path_asv_spoof_2019_la_train: '/datab/hungdx/KDW2V-AASISTL/databases/ASVspoof2019_LA_train'
+  path_asv_spoof_2019_la_dev: '/datab/hungdx/KDW2V-AASISTL/databases/ASVspoof2019_LA_dev'
+
+  path_label_asv_spoof_2019_la_eval: '/datab/hungdx/KDW2V-AASISTL/protocols/ASVspoof_LA_cm_protocols/ASVspoof2019.LA.cm.eval.trl.txt'
+  path_asv_spoof_2019_la_eval: '/datab/hungdx/KDW2V-AASISTL/databases/ASVspoof2019_LA_eval'
+  path_label_asv_spoof_2021_la_eval: '/datab/hungdx/KDW2V-AASISTL/eval-packages-ASVSpoof2021/keys/LA/CM/trial_metadata.txt'
+  path_asv_spoof_2021_la_eval: '/datab/hungdx/KDW2V-AASISTL/databases/ASVspoof2021_LA_eval'
+  # 1s dataset for evaluation
+
+  path_label_asv_spoof_2021_df_eval: '/datad/hungdx/KDW2V-AASISTL/eval-packages-ASVSpoof2021/keys/DF/CM/trial_metadata.txt'
+  path_asv_spoof_2021_df_eval: '/home/hungdx/Datasets/ASVspoof2021_DF_eval'
+  
+  num_workers: 8
+  model: ConformerModel
+  path_to_save_model: './runs/aasist_runs/ConformerModel_RawBoost3_random1strain'
+  df21_score_save_path: './runs/aasist_runs/ConformerModel_RawBoost3_random1strain/scores/ConformerModel_DA3_DF21_score_random.txt'
+  la21_score_save_path: './runs/aasist_runs/ConformerModel_RawBoost3_random1strain/scores/ConformerModel_DA3_LA21_score.txt'
+  la19_score_save_path: './runs/aasist_runs/ConformerModel_RawBoost3_random1strain/scores/ConformerModel_DA3_LA19_score.txt'
+
+ExpConfig:
+  is_pre_emphasis: False
+  is_random_start: True
+  include_non_speech: False # not include non-speech in training data
+
+  random_seed: 1234
+  pre_emphasis: 0.97
+  sample_rate: 16000
+  train_duration_sec: 1
+  test_duration_sec: 1
+  batch_size_train: 32
+  batch_size_test: 256
+  embedding_size: 64
+  max_epoch: 100
+  lr: 0.000001
+  weight_decay: 0.00001
+  lr_min: 0.000001
+  transformer_hidden: 660
+  allow_data_augmentation: False
+  data_augmentation:
+    - 'RawBoost3'

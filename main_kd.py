@@ -5,7 +5,7 @@ from torch.distributed import init_process_group, destroy_process_group
 import os
 import torch
 import torch.nn as nn
-from trainer import Trainer
+from trainer import KDTrainer as Trainer
 from data.train_set import ASVspoof2019LA as TrainSet
 from data.test_set import *
 from data.preprocess import PreEmphasis
@@ -18,7 +18,6 @@ from tqdm import tqdm
 import torch.distributed as dist
 from utils import find_available_port, set_seed, f_state_dict_wrapper
 from models.xlsr_aasist import *
-from models.conformer_baseline import Model as ConformerModel
 import logging
 
 logger = logging.getLogger()
@@ -84,28 +83,63 @@ def run(rank, world_size, port, yml_cfg, args):
     else:
         raise ValueError(f"Model {sys_config.model} not found.")
 
+    # ------------------------- kd_kwargs config ------------------------- #
+    kd_kwargs = exp_config.kd_kwargs
+    copy_weights = kd_kwargs.get('copy_weights', False)
+    custom_order_copy_weights = kd_kwargs["student_kwargs"].get(
+        "custom_order", [])
+    order = kd_kwargs["student_kwargs"].get(
+        "order", None)
+
+    if sys_config.student_model in globals():
+        print(sys_config.student_model)
+        model_class = globals()[sys_config.student_model]
+        student_model = model_class(
+            device=device, ssl_cpkt_path='pretrained/xlsr2_300m.pt',
+            **kd_kwargs["student_kwargs"]
+        ).to(device)
+    else:
+        raise ValueError(
+            f"Student Model {sys_config.student_model} not found.")
+
     # Print number of parameters
     logger.print(
-        f'Number of parameters: {sum(p.numel() for p in model.parameters())}')
+        f'Number of teacher model parameters: {sum(p.numel() for p in model.parameters())}')
+
+    logger.print(
+        f'Number of student model parameters: {sum(p.numel() for p in student_model.parameters())}')
 
     model = DDP(model, find_unused_parameters=True).to(device)
 
-    # ------------------------- Restore ckpt ------------------------- #
-    if exp_config.restore_checkpoint is not None:
-        print(f'Restoring checkpoint from {exp_config.restore_checkpoint}')
-        model.load_state_dict(torch.load(exp_config.restore_checkpoint))
-
     # ------------------------- load ckpt ------------------------- #
     if ckpt is not None:
-        print(f'Load checkpoint from {ckpt}')
+        print(f'Load Teacher checkpoint from {ckpt}')
         state_dict = torch.load(ckpt)
 
         model.load_state_dict(f_state_dict_wrapper(
             state_dict, data_parallel=True))
 
+    # ------------------------- Define student model ------------------------- #
+    student_model = DDP(student_model, find_unused_parameters=True).to(device)
+
+    if copy_weights:
+        student_model.module.load_state_dict(
+            model.module.state_dict(), strict=False)
+
+        print("Copied teacher weights to student")
+
+        if len(custom_order_copy_weights) > 0 and order == "custom":
+            print("Copy transformer weights with custom order")
+            for index, value in enumerate(custom_order_copy_weights):
+
+                student_model.module.ssl_model.model.encoder.layers[index].load_state_dict(
+                    model.module.ssl_model.model.encoder.layers[value].state_dict(), strict=False)
+
+                print(
+                    f"Copied teacher transformer weights from  to ssl_model.model.encoder.layers[{value}] to ssl_model.model.encoder.layers[{index}] student")
+
     # Deprecated because of a bug in specified parameters where 0 is spoofed and 1 is bonafied
     weight = torch.FloatTensor([0.9, 0.1]).to(device)
-    # weight = torch.FloatTensor([0.1, 0.9]).to(device)
 
     # auto weight
     # because number of bonafide is smaller than number of spoofed samples
@@ -123,6 +157,7 @@ def run(rank, world_size, port, yml_cfg, args):
     loss_fn = nn.CrossEntropyLoss(weight).to(device)
 
     # ------------------------- optimizer ------------------------- #
+    print(exp_config)
     optimizer = torch.optim.AdamW(params=model.parameters(
     ), lr=exp_config.lr, weight_decay=exp_config.weight_decay)
     # scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(
@@ -133,7 +168,7 @@ def run(rank, world_size, port, yml_cfg, args):
     # )
 
     # ------------------------- trainer ------------------------- #
-    trainer = Trainer(preprocessor=preprocessor, model=model, loss_fn=loss_fn, optimizer=optimizer,
+    trainer = Trainer(preprocessor=preprocessor, model=model, student_model=student_model, loss_fn=loss_fn, optimizer=optimizer,
                       train_loader=train_loader, dev_loader=dev_loader, test_loader=test_loader, logger=logger, device=device, exp_config=exp_config, sys_config=sys_config)
     # Initialize with infinity, so any loss is lower
     best_eval_loss = float('inf')
@@ -232,6 +267,8 @@ if __name__ == "__main__":
                         help='path to the config file')
     parser.add_argument('--is_eval', action='store_true',
                         help='evaluation mode', default=False)
+    parser.add_argument('--eval', default='teacher', type=str,
+                        help='Chhose teacher or student to evaluate', required=False)
     parser.add_argument('--ckpt', default=None, type=str,
                         help='path to the checkpoint')
     parser.add_argument('--comment', default=None, type=str,
@@ -257,6 +294,8 @@ if __name__ == "__main__":
 
     if is_eval:
         yml_cfg['SysConfig']['wandb_disabled'] = True
+        eval_mode = args.eval
+
         if args.score_all_folder_path is not None:
             list_all_checkpoint = os.listdir(args.score_all_folder_path)
             # Ensure that no folder is in the list
@@ -278,18 +317,27 @@ if __name__ == "__main__":
                 sys_config.df21_score_save_path = sys_config.df21_score_save_path.replace(
                     '.txt', f'_{comment}.txt')
 
-                if sys_config.model in globals():
-                    print(sys_config.model)
-                    model_class = globals()[sys_config.model]
+                if sys_config.model in globals() or sys_config.student_model in globals():
+
+                    print(sys_config.model) if eval_mode == 'teacher' else print(
+                        sys_config.student_model)
+                    kd_kwargs = exp_config.kd_kwargs
+                    model_class = globals()[
+                        sys_config.model if eval_mode == 'teacher' else sys_config.student_model]
+
+                    result_kwargs = exp_config.kwargs if eval_mode == 'teacher' else kd_kwargs[
+                        "student_kwargs"]
+
                     model = model_class(
                         device=device, ssl_cpkt_path='/datad/hungdx/Rawformer-implementation-anti-spoofing/pretrained/xlsr2_300m.pt',
-                        **exp_config.kwargs
+                        **result_kwargs
                     ).to(device)
                 else:
                     raise ValueError(f"Model {sys_config.model} not found.")
                 model = torch.nn.DataParallel(model)
-                model.load_state_dict(torch.load(ckpt, map_location=device))
-                print(f'Load checkpoint from {ckpt}')
+                model.load_state_dict(f_state_dict_wrapper(
+                    torch.load(ckpt, map_location=device), data_parallel=True))
+                print(f'Load model from {ckpt}')
                 model = model.module
 
                 # Score for LA19
@@ -339,21 +387,6 @@ if __name__ == "__main__":
                             sys_config=sys_config, exp_config=exp_config)
                         produce_evaluation_file(
                             test_dataset, model, device, sys_config.inthewild_score_save_path, exp_config.batch_size_test)
-                    elif track == 'FakeOrReal':
-                        print("Evaluating FakeOrReal")
-
-                        # Set attributes for FakeOrReal
-                        setattr(sys_config, 'path_label_fake_or_real',
-                                '/datab/Dataset/cnsl_real_fake_audio/fake_or_real/protocol.txt')
-                        setattr(sys_config, 'path_fake_or_real',
-                                '/datab/Dataset/cnsl_real_fake_audio/fake_or_real')
-                        setattr(sys_config, 'inthewild_score_save_path',
-                                sys_config.df21_score_save_path.replace('DF21', track))
-
-                        test_dataset = FakeOrReal(
-                            sys_config=sys_config, exp_config=exp_config)
-                        produce_evaluation_file(
-                            test_dataset, model, device, sys_config.inthewild_score_save_path, exp_config.batch_size_test)
                     else:
                         raise ValueError('Invalid track')
             sys.exit(0)
@@ -366,19 +399,29 @@ if __name__ == "__main__":
                 yml_cfg['SysConfig']), config.ExpConfig(yml_cfg['ExpConfig'])
             logger = Logger(device=device, sys_config=sys_config)
 
-            if sys_config.model in globals():
-                print(sys_config.model)
-                model_class = globals()[sys_config.model]
+            if sys_config.model in globals() or sys_config.student_model in globals():
+
+                print(sys_config.model) if eval_mode == 'teacher' else print(
+                    sys_config.student_model)
+                kd_kwargs = exp_config.kd_kwargs
+                model_class = globals()[
+                    sys_config.model if eval_mode == 'teacher' else sys_config.student_model]
+
+                result_kwargs = exp_config.kwargs if eval_mode == 'teacher' else kd_kwargs[
+                    "student_kwargs"]
+
                 model = model_class(
                     device=device, ssl_cpkt_path='/datad/hungdx/Rawformer-implementation-anti-spoofing/pretrained/xlsr2_300m.pt',
-                    **exp_config.kwargs
+                    **result_kwargs
                 ).to(device)
             else:
-                raise ValueError(f"Model {sys_config.model} not found.")
+                raise ValueError(
+                    f"Model {sys_config.model} or {sys_config.student_model} not found.")
+
             model = torch.nn.DataParallel(model)
             model.load_state_dict(f_state_dict_wrapper(
                 torch.load(ckpt, map_location=device), data_parallel=True))
-            print(f'Load checkpoint from {ckpt}')
+            print(f'Load model from {ckpt}')
             model = model.module
 
             # Update score name if needed
@@ -437,26 +480,12 @@ if __name__ == "__main__":
                         sys_config=sys_config, exp_config=exp_config)
                     produce_evaluation_file(
                         test_dataset, model, device, sys_config.inthewild_score_save_path, exp_config.batch_size_test)
-                elif track == 'FakeOrReal':
-                    print("Evaluating FakeOrReal")
-
-                    # Set attributes for FakeOrReal
-                    setattr(sys_config, 'path_label_fake_or_real',
-                            '/datab/Dataset/cnsl_real_fake_audio/fake_or_real/protocol.txt')
-                    setattr(sys_config, 'path_fake_or_real',
-                            '/datab/Dataset/cnsl_real_fake_audio/fake_or_real')
-                    setattr(sys_config, 'inthewild_score_save_path',
-                            sys_config.df21_score_save_path.replace('DF21', track))
-
-                    test_dataset = FakeOrReal(
-                        sys_config=sys_config, exp_config=exp_config)
-                    produce_evaluation_file(
-                        test_dataset, model, device, sys_config.inthewild_score_save_path, exp_config.batch_size_test)
                 else:
                     raise ValueError('Invalid track')
             sys.exit(0)
         # Handle
 
+    print('Running KD training')
     torch.cuda.empty_cache()
 
     # port = f'10{datetime.datetime.now().microsecond % 100}'

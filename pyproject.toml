@@ -16,7 +16,13 @@ conformer = "^0.3.2"
 torch-audiomentations = "^0.11.1"
 audiomentations = "^0.35.0"
 tensorboardx = "^2.6.2.2"
+tqdm = "^4.66.4"
+pandas = "^2.0.1"
+matplotlib = "^3.7.0"
 
+
+[tool.poetry.group.dev.dependencies]
+ipykernel = "^6.29.4"
 
 [build-system]
 requires = ["poetry-core"]
