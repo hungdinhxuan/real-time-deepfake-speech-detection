@@ -4,3 +4,6 @@
 [submodule "asvspoof-challenge-2021"]
 	path = asvspoof-challenge-2021
 	url = https://github.com/hungdinhxuan/asvspoof-challenge-2021.git
+[submodule "torchdistill"]
+	path = torchdistill
+	url = https://github.com/hungdinhxuan/torchdistill.git
