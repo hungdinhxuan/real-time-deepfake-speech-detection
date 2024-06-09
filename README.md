@@ -3,7 +3,7 @@
 ## Run
 
 ```
-PYTHONPATH=$PYTHONPATH:/datad/hungdx/Towards-Real-Time-Deepfake-Speech-Detection-in-Resource-Limited-Scenarios/fairseq OMP_NUM_THREADS=5 CUDA_VISIBLE_DEVICES=2 python main.py --config "confs/test_tmp/1s_aasist_r4_w_o_silence_re_init_3layers.yml"
+PYTHONPATH=$PYTHONPATH:/datad/hungdx/Towards-Real-Time-Deepfake-Speech-Detection-in-Resource-Limited-Scenarios/fairseq OMP_NUM_THREADS=5 CUDA_VISIBLE_DEVICES=2 python main.py --config "confs/1s_conformer_r4_w_o_silence.yml"
 ```
 
 
@@ -11,23 +11,29 @@ PYTHONPATH=$PYTHONPATH:/datad/hungdx/Towards-Real-Time-Deepfake-Speech-Detection
 
 ## EER
 ```
-python main.py --cm-score-file /datad/hungdx/Rawformer-implementation-anti-spoofing/XLSRraw4_best32_and_Conformer_best50_1s_fusion.txt --track DF --subset eval
+python main.py --cm-score-file /data/hungdx/Towards-Real-Time-Deepfake-Speech-Detection-in-Resource-Limited-Scenarios/KD_ICONIP/XLSR-6-AASIST_LA19-1s_conf-1-ce/best_checkpoint_148.pth_DF21.txt --track DF --subset eval
 ```
-
+****
 ## Evaluation
 ```
-PYTHONPATH=$PYTHONPATH:/home/hungdx/code/Towards-Real-Time-Deepfake-Speech-Detection-in-Resource-Limited-Scenarios/fairseq CUDA_VISIBLE_DEVICES=2 OMP_NUM_THREADS=3 python main.py --config confs/test_tmp/1s_aasist_r4_w_o_silence_re_init_3layers.yml --is_eval --is_score --tracks DF21 --score_all_folder_path=aasist_runs/XLSR_AASIST_RawBoost4_freeze_last3
+PYTHONPATH=$PYTHONPATH:/home/hungdx/code/Towards-Real-Time-Deepfake-Speech-Detection-in-Resource-Limited-Scenarios/fairseq CUDA_VISIBLE_DEVICES=2 OMP_NUM_THREADS=3 python main.py --config confs/1s_conformer_r4_w_o_silence.yml --is_eval --is_score --tracks DF21 --score_all_folder_path=runs/aasist_runs/ConformerModel_RawBoost4
 ```
 
-
-## Evaluation using distilled model
-```
-PYTHONPATH=$PYTHONPATH:/home/hungdx/code/Towards-Real-Time-Deepfake-Speech-Detection-in-Resource-Limited-Scenarios/fairseq CUDA_VISIBLE_DEVICES=2 OMP_NUM_THREADS=3 python main_kd.py --config kd_configs/test/1s_my_kd_aasist_df21_1s.yml --is_eval --is_score --tracks DF21 --score_all_folder_path best_pretrained/iconip2024_runs_newmap_g2/Distil_XLSR_5_Custom_Trans_Layer_AASIST_from_bestr4_CosineAnnealing_MSE_aug4_newmap_g_2 --comment='_Distil_XLSR_5_Custom_Trans_Layer_AASIST_from_bestr4_CosineAnnealing_MSE_aug4_newmap_g_2' --eval student
-```
 
 ## Evaluation folder using distilled model
 ```
-PYTHONPATH=$PYTHONPATH:/home/hungdx/code/Towards-Real-Time-Deepfake-Speech-Detection-in-Resource-Limited-Scenarios/fairseq CUDA_VISIBLE_DEVICES=1 OMP_NUM_THREADS=3 python main_kd.py --config kd_configs/test/1s_my_kd_aasist_df21_1s.yml --is_eval --is_score --tracks DF21 --ckpt /data/best_pretrained/Distil_XLSR_5_Custom_Trans_Layer_AASIST_from_bestr4_CosineAnnealing_MSE_aug4_newmap_g_2_best32.pth --comment='_Distil_XLSR_5_Custom_Trans_Layer_AASIST_from_bestr4_CosineAnnealing_MSE_aug4_newmap_g_2_best32' --eval student
+PYTHONPATH=$PYTHONPATH:/home/hungdx/code/Towards-Real-Time-Deepfake-Speech-Detection-in-Resource-Limited-Scenarios/fairseq CUDA_VISIBLE_DEVICES=2 OMP_NUM_THREADS=2 python main_kd.py --config kd_configs/test/1s_my_kd_conformer_df21_1s_6l.yml --is_eval --is_score --tracks DF21 --score_all_folder_path KD_ICONIP/XLSR-6-Conformer_LA19-1s_conf-1-5_r4teacher --eval student
+```
+
+## Evaluation  using distilled model
+```
+PYTHONPATH=$PYTHONPATH:/home/hungdx/code/Towards-Real-Time-Deepfake-Speech-Detection-in-Resource-Limited-Scenarios/fairseq CUDA_VISIBLE_DEVICES=2 OMP_NUM_THREADS=1 python main_kd.py --config kd_configs/test/1s_my_kd_conformer_df21new_1s_6l.yml --is_eval --is_score --tracks DF21,InTheWild,InTheWild1s --ckpt KD_ICONIP/XLSR-6-Conformer_LA19-1s_conf-1-5_r4teacher/best_checkpoint_125.pth --comment='_XLSR-6-Conformer_LA19-1s_conf-1-5_r4teacher_best125_new1s' --eval student
+```
+
+
+## Evaluation KD 
+```
+PYTHONPATH=$PYTHONPATH:/home/hungdx/code/Towards-Real-Time-Deepfake-Speech-Detection-in-Resource-Limited-Scenarios/fairseq CUDA_VISIBLE_DEVICES=2 OMP_NUM_THREADS=1 python main_kd.py --config kd_configs/test/1s_my_kd_aasist_df21_1s_6l.yml --is_eval --is_score --tracks InTheWild,InTheWild1s --ckpt pretrained/Best_LA_model_for_DF.pth --comment='_aasist_baseline_best' --eval teacher
 ```
 
 ### Training with knowledge distillation

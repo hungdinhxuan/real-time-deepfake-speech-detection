@@ -18,6 +18,8 @@ from tqdm import tqdm
 import torch.distributed as dist
 from utils import find_available_port, set_seed, f_state_dict_wrapper
 from models.xlsr_aasist import *
+from models.conformer_baseline import Model as ConformerModel
+from models.conformer_baseline import MyModel as MyConformerModel
 import logging
 
 logger = logging.getLogger()
@@ -300,7 +302,8 @@ if __name__ == "__main__":
             list_all_checkpoint = os.listdir(args.score_all_folder_path)
             # Ensure that no folder is in the list
             list_all_checkpoint = [
-                ckpt for ckpt in list_all_checkpoint if '.pt' in ckpt]
+                ckpt for ckpt in list_all_checkpoint if '.pt' in ckpt and not '.txt' in ckpt]
+            print(list_all_checkpoint)
             for index, ckpt in enumerate(list_all_checkpoint):
                 ckpt = os.path.join(args.score_all_folder_path, ckpt)
                 comment = ckpt.split(
@@ -310,12 +313,9 @@ if __name__ == "__main__":
                 sys_config, exp_config = config.SysConfig(
                     yml_cfg['SysConfig']), config.ExpConfig(yml_cfg['ExpConfig'])
                 logger = Logger(device=device, sys_config=sys_config)
-                sys_config.la19_score_save_path = sys_config.la19_score_save_path.replace(
-                    '.txt', f'_{comment}.txt')
-                sys_config.la21_score_save_path = sys_config.la21_score_save_path.replace(
-                    '.txt', f'_{comment}.txt')
-                sys_config.df21_score_save_path = sys_config.df21_score_save_path.replace(
-                    '.txt', f'_{comment}.txt')
+                sys_config.la19_score_save_path = f'{ckpt}_LA19.txt'
+                sys_config.la21_score_save_path = f'{ckpt}_LA21.txt'
+                sys_config.df21_score_save_path = f'{ckpt}_DF21.txt'
 
                 if sys_config.model in globals() or sys_config.student_model in globals():
 
@@ -341,6 +341,7 @@ if __name__ == "__main__":
                 model = model.module
 
                 # Score for LA19
+                print("track: ", tracks)
                 for track in tracks:
                     if track == 'LA19':
                         print("Evaluating LA19")
@@ -382,6 +383,29 @@ if __name__ == "__main__":
                                 '/datab/Dataset/cnsl_real_fake_audio/in_the_wild')
                         setattr(sys_config, 'inthewild_score_save_path',
                                 sys_config.df21_score_save_path.replace('DF21', track))
+                        
+                        if os.path.exists(sys_config.inthewild_score_save_path):
+                            print("File existed, skip")
+                            continue
+
+                        test_dataset = InTheWild(
+                            sys_config=sys_config, exp_config=exp_config)
+                        produce_evaluation_file(
+                            test_dataset, model, device, sys_config.inthewild_score_save_path, exp_config.batch_size_test)
+                    elif track == 'InTheWild1s':
+                        print("Evaluating InTheWild1s")
+
+                        # Set attributes for InTheWild
+                        setattr(sys_config, 'path_label_in_the_wild',
+                                '/data/hungdx/Towards-Real-Time-Deepfake-Speech-Detection-in-Resource-Limited-Scenarios/datasets/prototcols/InTheWild_1s.txt')
+                        setattr(sys_config, 'path_in_the_wild',
+                                '/data/hungdx/Towards-Real-Time-Deepfake-Speech-Detection-in-Resource-Limited-Scenarios/datasets/InTheWild_1s')
+                        setattr(sys_config, 'inthewild_score_save_path',
+                                sys_config.df21_score_save_path.replace('DF21', track))
+                        
+                        if os.path.exists(sys_config.inthewild_score_save_path):
+                            print("File existed, skip")
+                            continue
 
                         test_dataset = InTheWild(
                             sys_config=sys_config, exp_config=exp_config)
@@ -480,6 +504,25 @@ if __name__ == "__main__":
                         sys_config=sys_config, exp_config=exp_config)
                     produce_evaluation_file(
                         test_dataset, model, device, sys_config.inthewild_score_save_path, exp_config.batch_size_test)
+                elif track == 'InTheWild1s':
+                        print("Evaluating InTheWild1s")
+
+                        # Set attributes for InTheWild
+                        setattr(sys_config, 'path_label_in_the_wild',
+                                '/data/hungdx/Towards-Real-Time-Deepfake-Speech-Detection-in-Resource-Limited-Scenarios/datasets/prototcols/InTheWild_1s.txt')
+                        setattr(sys_config, 'path_in_the_wild',
+                                '/data/hungdx/Towards-Real-Time-Deepfake-Speech-Detection-in-Resource-Limited-Scenarios/datasets/InTheWild_1s')
+                        setattr(sys_config, 'inthewild_score_save_path',
+                                sys_config.df21_score_save_path.replace('DF21', track))
+                        
+                        if os.path.exists(sys_config.inthewild_score_save_path):
+                            print("File existed, skip")
+                            continue
+
+                        test_dataset = InTheWild(
+                            sys_config=sys_config, exp_config=exp_config)
+                        produce_evaluation_file(
+                            test_dataset, model, device, sys_config.inthewild_score_save_path, exp_config.batch_size_test)
                 else:
                     raise ValueError('Invalid track')
             sys.exit(0)

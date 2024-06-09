@@ -65,6 +65,44 @@ class Model(nn.Module):
         return out
 
 
+
+class MyModel(nn.Module):
+    def __init__(self, device, ssl_cpkt_path, **kwargs):
+        super().__init__()
+        self.device = device
+        ##
+        # Default config from conformer
+        ##
+        emb_size = kwargs.get('emb_size', 144)
+        heads = kwargs.get('heads', 4)
+        kernel_size = kwargs.get('kernel_size', 31)
+        n_encoders = kwargs.get('n_encoders', 4)
+        ####
+        # create network wav2vec 2.0
+        ####
+        self.ssl_model = My_XLSR_FE(device, **kwargs)
+        self.LL = nn.Linear(1024, emb_size)
+        print('W2V + Conformer')
+        self.first_bn = nn.BatchNorm2d(num_features=1)
+        self.selu = nn.SELU(inplace=True)
+
+        self.conformer = MyConformer(emb_size=emb_size, n_encoders=n_encoders,
+                                     heads=heads, kernel_size=kernel_size)
+
+    def forward(self, x):
+        # -------pre-trained Wav2vec model fine tunning ------------------------##
+        x_ssl_feat = self.ssl_model.extract_feat(x.squeeze(-1))
+        # (bs,frame_number,feat_out_dim) (bs, 208, 256)
+        x = self.LL(x_ssl_feat)
+        x = x.unsqueeze(dim=1)  # add channel #(bs, 1, frame_number, 256)
+        x = self.first_bn(x)
+        x = self.selu(x)
+        x = x.squeeze(dim=1)
+        out, _ = self.conformer(x, self.device)
+        return out
+
+
+
 # class Model2(nn.Module):  # Variable len
 #     def __init__(self, args, device):
 #         super().__init__()
