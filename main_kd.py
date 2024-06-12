@@ -356,7 +356,7 @@ if __name__ == "__main__":
                         # Score for DF21
                         print("Evaluating DF21")
                         if os.path.exists(sys_config.df21_score_save_path):
-                            print("File existed, skip")
+                            print(f"File {sys_config.df21_score_save_path} existed, skip")
                             continue
                         test_dataset = ASVspoof2021DF_eval(
                             sys_config=sys_config, exp_config=exp_config)
@@ -472,7 +472,7 @@ if __name__ == "__main__":
                     # Score for DF21
                     print("Evaluating DF21")
                     if os.path.exists(sys_config.df21_score_save_path):
-                        print("File existed, skip")
+                        print(f"File {sys_config.df21_score_save_path} existed, skip")
                         continue
                     test_dataset = ASVspoof2021DF_eval(
                         sys_config=sys_config, exp_config=exp_config)

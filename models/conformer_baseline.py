@@ -19,7 +19,7 @@ class MyConformer(nn.Module):
         self.class_token = nn.Parameter(torch.rand(1, emb_size))
         self.fc5 = nn.Linear(emb_size, 2)
 
-    def forward(self, x, device):  # x shape [bs, tiempo, frecuencia]
+    def forward(self, x):  # x shape [bs, tiempo, frecuencia]
         x = torch.stack([torch.vstack((self.class_token, x[i]))
                         for i in range(len(x))])  # [bs,1+tiempo,emb_size]
         for layer in self.encoder_blocks:
@@ -61,7 +61,7 @@ class Model(nn.Module):
         x = self.first_bn(x)
         x = self.selu(x)
         x = x.squeeze(dim=1)
-        out, _ = self.conformer(x, self.device)
+        out, _ = self.conformer(x)
         return out
 
 

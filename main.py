@@ -48,7 +48,7 @@ def run(rank, world_size, port, yml_cfg, args):
     device = rank
 
     # ------------------------- import configs ------------------------- #
-    is_eval, ckpt = args.is_eval, args.ckpt
+    is_accuracy, ckpt = args.accuracy, args.ckpt
     sys_config, exp_config = config.SysConfig(
         yml_cfg['SysConfig']), config.ExpConfig(yml_cfg['ExpConfig'])
     set_seed(exp_config.random_seed)
@@ -67,8 +67,7 @@ def run(rank, world_size, port, yml_cfg, args):
                                                 ), batch_size=exp_config.batch_size_test, num_workers=sys_config.num_workers)
 
     print("Number of dev_loader: ", len(dev_loader))
-    test_loader = getDataLoader(dataset=ASVspoof2021LA_eval(sys_config=sys_config, exp_config=exp_config, skip_adjustDuration=is_eval
-                                                            ), batch_size=exp_config.batch_size_test, num_workers=sys_config.num_workers)
+    test_loader = getDataLoader(dataset=ASVspoof2021DF_eval(sys_config=sys_config, exp_config=exp_config), batch_size=exp_config.batch_size_test, num_workers=sys_config.num_workers)
 
     # ------------------------- set model ------------------------- #
     preprocessor = PreEmphasis(
@@ -141,7 +140,7 @@ def run(rank, world_size, port, yml_cfg, args):
     best_loss_epoch = 0
     best_acc_epoch = 0
 
-    if not is_eval:
+    if not is_accuracy:
         for epoch in range(1, exp_config.max_epoch + 1):
             save_checkpoint = False
             logger.print(f'epoch: {epoch}')
@@ -190,12 +189,9 @@ def run(rank, world_size, port, yml_cfg, args):
 
     else:
         # ------------------------- Evaluation ------------------------- #
-
-        # Load the best model
-        logger.print(f'Load the best model from {ckpt}')
-
-        trainer.model.load_state_dict(
-            torch.load(ckpt, map_location=f'cuda:{device}'))
+        print('Evaluation mode')
+        eval_loss, acc = trainer.test(is_dev=False)
+        logger.print(f'Test acc: {acc}, Test loss: {eval_loss}')
 
     destroy_process_group()
 
@@ -238,6 +234,8 @@ if __name__ == "__main__":
                         help='Comment to update score name')
     parser.add_argument('--is_score', action='store_true',
                         help='Prodive score file', default=False)
+    parser.add_argument('--accuracy', action='store_true', 
+                        help='Calculate accuracy', default=False)
     parser.add_argument('--score_all_folder_path', type=str,
                         help='Prodive score file for all folders', default=None)
 
@@ -354,12 +352,27 @@ if __name__ == "__main__":
                             sys_config=sys_config, exp_config=exp_config)
                         produce_evaluation_file(
                             test_dataset, model, device, sys_config.inthewild_score_save_path, exp_config.batch_size_test)
+                    elif track == 'ASVSpoof5':
+                        print("Evaluating ASVSpoof5")
+                        # Set attributes for FakeOrReal
+                        setattr(sys_config, 'path_label_asvspoof5',
+                                '/data/hungdx/asvspoof5/DATA/ASVspoof5/protocol.txt')
+                        setattr(sys_config, 'path_asvspoof5',
+                                '/data/hungdx/asvspoof5/DATA/ASVspoof5')
+                        setattr(sys_config, 'asvspoof5_score_save_path',
+                                sys_config.df21_score_save_path.replace('DF21', track))
+
+                        test_dataset = ASVSpoof5(
+                            sys_config=sys_config, exp_config=exp_config)
+                        produce_evaluation_file(
+                            test_dataset, model, device, sys_config.asvspoof5_score_save_path, exp_config.batch_size_test)
                     else:
                         raise ValueError('Invalid track')
             sys.exit(0)
 
         if ckpt is None:
             raise ValueError('ckpt is None')
+        
         if is_score:
             device = "cuda" if torch.cuda.is_available() else "cpu"
             sys_config, exp_config = config.SysConfig(
@@ -452,6 +465,20 @@ if __name__ == "__main__":
                         sys_config=sys_config, exp_config=exp_config)
                     produce_evaluation_file(
                         test_dataset, model, device, sys_config.inthewild_score_save_path, exp_config.batch_size_test)
+                elif track == 'ASVSpoof5':
+                        print("Evaluating ASVSpoof5")
+                        # Set attributes for FakeOrReal
+                        setattr(sys_config, 'path_label_asvspoof5',
+                                '/data/hungdx/asvspoof5/DATA/ASVspoof5/protocol.txt')
+                        setattr(sys_config, 'path_asvspoof5',
+                                '/data/hungdx/asvspoof5/DATA/ASVspoof5')
+                        setattr(sys_config, 'asvspoof5_score_save_path',
+                                sys_config.df21_score_save_path.replace('DF21', track))
+
+                        test_dataset = ASVSpoof5(
+                            sys_config=sys_config, exp_config=exp_config)
+                        produce_evaluation_file(
+                            test_dataset, model, device, sys_config.asvspoof5_score_save_path, exp_config.batch_size_test)
                 else:
                     raise ValueError('Invalid track')
             sys.exit(0)

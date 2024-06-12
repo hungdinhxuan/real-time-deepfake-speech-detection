@@ -26,9 +26,9 @@ SysConfig:
   model: XLSR_AASIST
   student_model: My_XLSR_AASIST
   path_to_save_model: './runs/aasist_runs/XLSR_AASIST_kd_1s'
-  df21_score_save_path: './runs/aasist_runs/XLSR_AASIST_kd_1s/scores/XLSR_AASIST_DF21_o_score.txt'
-  la21_score_save_path: './runs/aasist_runs/XLSR_AASIST_kd_1s/scores/XLSR_AASIST_LA21_score.txt'
-  la19_score_save_path: './runs/aasist_runs/XLSR_AASIST_kd_1s/scores/XLSR_AASIST_LA19_score.txt'
+  df21_score_save_path: './runs/aasist_runs/XLSR_AASIST_kd_1s/scores2/XLSR_AASIST_DF21_o_score.txt'
+  la21_score_save_path: './runs/aasist_runs/XLSR_AASIST_kd_1s/scores2/XLSR_AASIST_LA21_score.txt'
+  la19_score_save_path: './runs/aasist_runs/XLSR_AASIST_kd_1s/scores2/XLSR_AASIST_LA19_score.txt'
 
 ExpConfig:
   is_pre_emphasis: False
