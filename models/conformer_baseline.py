@@ -28,7 +28,6 @@ class MyConformer(nn.Module):
         out = self.fc5(embedding)  # [bs,2]
         return out, embedding
 
-
 class Model(nn.Module):
     def __init__(self, device, ssl_cpkt_path, **kwargs):
         super().__init__()
@@ -64,8 +63,6 @@ class Model(nn.Module):
         out, _ = self.conformer(x)
         return out
 
-
-
 class MyModel(nn.Module):
     def __init__(self, device, ssl_cpkt_path, **kwargs):
         super().__init__()
@@ -100,32 +97,3 @@ class MyModel(nn.Module):
         x = x.squeeze(dim=1)
         out, _ = self.conformer(x, self.device)
         return out
-
-
-
-# class Model2(nn.Module):  # Variable len
-#     def __init__(self, args, device):
-#         super().__init__()
-#         self.device = device
-#         self.ssl_model = SSLModel(self.device)
-#         self.LL = nn.Linear(1024, args.emb_size)
-#         print('W2V + Conformer: Variable Length')
-#         self.first_bn = nn.BatchNorm2d(num_features=1)
-#         self.selu = nn.SELU(inplace=True)
-#         self.conformer = MyConformer(emb_size=args.emb_size, n_encoders=args.num_encoders,
-#                                      heads=args.heads, kernel_size=args.kernel_size)
-
-#     def forward(self, x):  # x is a list of np arrays
-#         nUtterances = len(x)
-#         output = torch.zeros(nUtterances, 2).to(self.device)
-#         for n, feat in enumerate(x):
-#             input_x = torch.from_numpy(feat[:, :]).float().to(self.device)
-#             x_ssl_feat = self.ssl_model.extract_feat(input_x.squeeze(-1))
-#             f = self.LL(x_ssl_feat)
-#             f = f.unsqueeze(dim=1)
-#             f = self.first_bn(f)
-#             f = self.selu(f)
-#             f = f.squeeze(dim=1)
-#             out, _ = self.conformer(f, self.device)
-#             output[n, :] = out
-#         return output

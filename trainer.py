@@ -4,16 +4,8 @@ from tqdm import tqdm
 from sklearn import metrics
 from scipy.optimize import brentq
 from scipy.interpolate import interp1d
-import torch.distributed as dist
-from ddp_util import all_gather
 import logger
-import config
 from data.augmentation import WaveformAugmetation
-import numpy as np
-import os
-import torch.distributed as dist
-# from torchdistill.core.forward_hook import ForwardHookManager
-# from torchdistill.losses.registry import get_mid_level_loss
 from utils import AverageMeter
 
 
@@ -145,7 +137,6 @@ class Trainer:
         fpr, tpr, _ = metrics.roc_curve(labels, scores, pos_label=1)
         eer = brentq(lambda x: 1. - x - interp1d(fpr, tpr)(x), 0., 1.)
         return eer * 100
-
 
 class KDTrainer:
 

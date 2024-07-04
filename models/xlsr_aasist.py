@@ -2,7 +2,6 @@ from .fe import *
 from .aasist_modules import *
 import torch.nn as nn
 
-
 class XLSR_AASIST(nn.Module):
     def __init__(self, device, ssl_cpkt_path=None, **kwargs) -> None:
         super().__init__()

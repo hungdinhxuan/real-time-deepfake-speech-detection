@@ -1,4 +1,3 @@
-
 class SysConfig:
 
     def __init__(self, config):
@@ -57,7 +56,6 @@ class SysConfig:
 
     def __str__(self):
         return f"SysConfig: {self.__dict__}"
-
 
 class ExpConfig:
 

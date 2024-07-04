@@ -109,7 +109,6 @@ class GraphAttentionLayer(nn.Module):
         nn.init.xavier_normal_(out)
         return out
 
-
 class HtrgGraphAttentionLayer(nn.Module):
     def __init__(self, in_dim, out_dim, **kwargs):
         super().__init__()
@@ -294,7 +293,6 @@ class HtrgGraphAttentionLayer(nn.Module):
         nn.init.xavier_normal_(out)
         return out
 
-
 class GraphPool(nn.Module):
     def __init__(self, k: float, in_dim: int, p: Union[float, int]):
         super().__init__()
@@ -338,7 +336,6 @@ class GraphPool(nn.Module):
         h = torch.gather(h, 1, idx)
 
         return h
-
 
 class Residual_block(nn.Module):
     def __init__(self, nb_filts, first=False):
@@ -398,4 +395,3 @@ class Residual_block(nn.Module):
         out += identity
         # out = self.mp(out)
         return out
-
